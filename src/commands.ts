@@ -1,5 +1,6 @@
 import { readConfig, setUser } from 'src/config.js';
 import { createUser, deleteUsers, getUser, getUsers } from 'src/lib/db/queries/users.js';
+import { fetchFeed, RSSItem } from './feed';
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>;
 export type CommandsRegistry = Record<string, CommandHandler>;
@@ -56,8 +57,14 @@ export async function handlerUsers(cmdName: string, ...args: string[]) {
             console.log(`* ${result[i].name}`);
         }
     }
+}
 
-
+export async function handlerAgg(cmdName: string, ...args: string[]) {
+    const feed = await fetchFeed("https://www.wagslane.dev/index.xml");
+    //console.log(feed);
+    for (let i = 0; i < feed.channel.item.length; i++) {
+        console.log(feed.channel.item[i]);
+    }
 }
 
 export async function registerCommand(registry: CommandsRegistry, cmdName: string, handler: CommandHandler) {
