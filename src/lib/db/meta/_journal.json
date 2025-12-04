@@ -8,6 +8,13 @@
       "when": 1764278754923,
       "tag": "0000_gray_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764880073540,
+      "tag": "0001_chunky_valkyrie",
+      "breakpoints": true
     }
   ]
 }

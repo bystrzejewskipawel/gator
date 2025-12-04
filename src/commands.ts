@@ -1,6 +1,7 @@
 import { readConfig, setUser } from 'src/config.js';
-import { createUser, deleteUsers, getUser, getUsers } from 'src/lib/db/queries/users.js';
-import { fetchFeed, RSSItem } from './feed';
+import { createUser, deleteUsers, getUser, getUserById, getUsers } from 'src/lib/db/queries/users.js';
+import { addFeed, fetchFeed, printFeed, RSSItem, getFeeds } from './feed';
+import { Feed, User } from "src/schema.js";
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>;
 export type CommandsRegistry = Record<string, CommandHandler>;
@@ -65,6 +66,34 @@ export async function handlerAgg(cmdName: string, ...args: string[]) {
     for (let i = 0; i < feed.channel.item.length; i++) {
         console.log(feed.channel.item[i]);
     }
+}
+
+export async function handlerAddFeed(cmdName: string, ...args: string[]) {
+    if (args.length !== 2) {
+        throw new Error("Please provide proper number of parameters");
+    }
+    const name = args[0];
+    const url = args[1];
+    const config = readConfig();
+    const currentUser = config.currentUserName;
+
+    const user: User = await getUser(currentUser);
+
+    const result: Feed = await addFeed(name, url, user.id);
+
+    printFeed(result, user);
+}
+
+export async function handlerFeeds(cmdName: string, ...args: string[]) {
+
+    const result: Feed[] = await getFeeds();
+
+    for (let i = 0; i < result.length; i++) {
+        const feed = result[i];
+        const user = await getUserById(feed.user_id!);
+        console.log(`${feed.name}: "${feed.url}" by ${user.name}`);
+    }
+
 }
 
 export async function registerCommand(registry: CommandsRegistry, cmdName: string, handler: CommandHandler) {

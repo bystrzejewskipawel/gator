@@ -1,5 +1,5 @@
 import 'src/config.js';
-import { CommandsRegistry, registerCommand, handlerLogin, runCommand, handlerRegister, handlerReset, handlerUsers, handlerAgg } from 'src/commands.js';
+import { CommandsRegistry, registerCommand, handlerLogin, runCommand, handlerRegister, handlerReset, handlerUsers, handlerAgg, handlerAddFeed, handlerFeeds } from 'src/commands.js';
 import os from "os";
 import { getUser } from './lib/db/queries/users.js';
 
@@ -11,6 +11,8 @@ async function main() {
   await registerCommand(cr, "reset", handlerReset);
   await registerCommand(cr, "users", handlerUsers);
   await registerCommand(cr, "agg", handlerAgg);
+  await registerCommand(cr, "addfeed", handlerAddFeed);
+    await registerCommand(cr, "feeds", handlerFeeds);
 
   const args = process.argv.slice(2);
 

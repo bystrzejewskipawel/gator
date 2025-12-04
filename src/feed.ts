@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
-
+import { Feed, User, feeds } from "src/schema.js";
+import { db } from "src/lib/db/index.js";
 
 export type RSSFeed = {
   channel: {
@@ -29,4 +30,19 @@ export async function fetchFeed(feedURL: string): Promise<RSSFeed> {
     }
 
     return feedObj;
+}
+
+export async function addFeed(name: string, url: string, user_id: string) {
+    const [result] = await db.insert(feeds).values({ name: name, url: url, user_id: user_id }).returning();
+    return result;
+}
+
+export async function getFeeds() {
+    const result = await db.select().from(feeds);
+    return result;
+}
+
+export async function printFeed(feed: Feed, user: User) {
+  console.log(feed);
+  console.log(user);
 }
