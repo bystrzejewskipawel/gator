@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { Feed, User, feeds } from "src/schema.js";
 import { db } from "src/lib/db/index.js";
+import { sql, eq } from 'drizzle-orm';
 
 export type RSSFeed = {
   channel: {
@@ -42,7 +43,12 @@ export async function getFeeds() {
     return result;
 }
 
+export async function getFeedByUrl(url: string) {
+    const result = await db.select().from(feeds).where(eq(feeds.url,url));
+    return result;
+}
+
 export async function printFeed(feed: Feed, user: User) {
-  console.log(feed);
-  console.log(user);
+  console.log(feed.name);
+  console.log(user.name);
 }

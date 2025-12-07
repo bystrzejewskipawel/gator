@@ -1,10 +1,13 @@
 import { readConfig, setUser } from 'src/config.js';
 import { createUser, deleteUsers, getUser, getUserById, getUsers } from 'src/lib/db/queries/users.js';
-import { addFeed, fetchFeed, printFeed, RSSItem, getFeeds } from './feed';
-import { Feed, User } from "src/schema.js";
+import { addFeed, fetchFeed, printFeed, RSSItem, getFeeds, getFeedByUrl } from './feed';
+import { Feed, User, FeedFollows } from "src/schema.js";
+import { createFeedFollow, getFeedFollowsForUser } from "src/feedfollow.js"
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>;
 export type CommandsRegistry = Record<string, CommandHandler>;
+
+type FeedFollowsEx = FeedFollows & {feedName: string, userName: string}
 
 export async function handlerLogin(cmdName: string, ...args: string[]) {
     if (args.length === 0) {
@@ -79,9 +82,11 @@ export async function handlerAddFeed(cmdName: string, ...args: string[]) {
 
     const user: User = await getUser(currentUser);
 
-    const result: Feed = await addFeed(name, url, user.id);
+    const newFeed: Feed = await addFeed(name, url, user.id);
 
-    printFeed(result, user);
+    const feedFollow: FeedFollowsEx[] = await createFeedFollow(newFeed, user);
+
+    printFeed(newFeed, user);
 }
 
 export async function handlerFeeds(cmdName: string, ...args: string[]) {
@@ -93,7 +98,39 @@ export async function handlerFeeds(cmdName: string, ...args: string[]) {
         const user = await getUserById(feed.user_id!);
         console.log(`${feed.name}: "${feed.url}" by ${user.name}`);
     }
+}
 
+export async function handlerFollow(cmdName: string, ...args: string[]) {
+
+    const url = args[0];
+    const config = readConfig();
+    const currentUser = config.currentUserName;
+
+    const user: User = await getUser(currentUser);
+
+    const foundFeed: Feed[] = await getFeedByUrl(url);
+
+    //console.log(foundFeed[0]);
+
+    const feedFollow: FeedFollowsEx[] = await createFeedFollow(foundFeed[0], user);
+
+    console.log(`Feed: ${feedFollow[0].feedName} added for User: ${user.name}`);
+
+}
+
+export async function handlerFollowing(cmdName: string, ...args: string[]) {
+
+    const config = readConfig();
+    const currentUser = config.currentUserName;
+    const user: User = await getUser(currentUser);
+
+    const following: FeedFollowsEx[] = await getFeedFollowsForUser(user);
+
+    console.log(`User ${user.name} is following:`);
+
+    for (let i = 0; i < following.length; i++) {
+        console.log(`${following[i].feedName}`);
+    }
 }
 
 export async function registerCommand(registry: CommandsRegistry, cmdName: string, handler: CommandHandler) {
