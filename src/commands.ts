@@ -2,7 +2,8 @@ import { readConfig, setUser } from 'src/config.js';
 import { createUser, deleteUsers, getUser, getUserById, getUsers } from 'src/lib/db/queries/users.js';
 import { addFeed, fetchFeed, printFeed, RSSItem, getFeeds, getFeedByUrl } from './feed';
 import { Feed, User, FeedFollows } from "src/schema.js";
-import { createFeedFollow, getFeedFollowsForUser } from "src/feedfollow.js"
+import { createFeedFollow, deleteFeedFollow, getFeedFollowsForUser } from "src/feedfollow.js"
+import { PgInsertOnConflictDoUpdateConfig } from 'drizzle-orm/pg-core';
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>;
 export type CommandsRegistry = Record<string, CommandHandler>;
@@ -71,16 +72,12 @@ export async function handlerAgg(cmdName: string, ...args: string[]) {
     }
 }
 
-export async function handlerAddFeed(cmdName: string, ...args: string[]) {
+export async function handlerAddFeed(cmdName: string, user: User, ...args: string[]) {
     if (args.length !== 2) {
         throw new Error("Please provide proper number of parameters");
     }
     const name = args[0];
     const url = args[1];
-    const config = readConfig();
-    const currentUser = config.currentUserName;
-
-    const user: User = await getUser(currentUser);
 
     const newFeed: Feed = await addFeed(name, url, user.id);
 
@@ -100,14 +97,10 @@ export async function handlerFeeds(cmdName: string, ...args: string[]) {
     }
 }
 
-export async function handlerFollow(cmdName: string, ...args: string[]) {
+export async function handlerFollow(cmdName: string, user: User, ...args: string[]) {
 
     const url = args[0];
-    const config = readConfig();
-    const currentUser = config.currentUserName;
-
-    const user: User = await getUser(currentUser);
-
+    
     const foundFeed: Feed[] = await getFeedByUrl(url);
 
     //console.log(foundFeed[0]);
@@ -118,12 +111,10 @@ export async function handlerFollow(cmdName: string, ...args: string[]) {
 
 }
 
-export async function handlerFollowing(cmdName: string, ...args: string[]) {
+export async function handlerFollowing(cmdName: string, user: User, ...args: string[]) {
 
     const config = readConfig();
-    const currentUser = config.currentUserName;
-    const user: User = await getUser(currentUser);
-
+   
     const following: FeedFollowsEx[] = await getFeedFollowsForUser(user);
 
     console.log(`User ${user.name} is following:`);
@@ -131,6 +122,18 @@ export async function handlerFollowing(cmdName: string, ...args: string[]) {
     for (let i = 0; i < following.length; i++) {
         console.log(`${following[i].feedName}`);
     }
+}
+
+export async function handlerUnfollow(cmdName: string, user: User, ...args: string[]) {
+
+    const url = args[0];
+    
+    const foundFeed: Feed[] = await getFeedByUrl(url);
+
+    const feedFollow: FeedFollowsEx[] = await deleteFeedFollow(user, foundFeed[0]);
+
+    console.log(`Feed: ${foundFeed[0].name} removed for User: ${user.name}`);
+
 }
 
 export async function registerCommand(registry: CommandsRegistry, cmdName: string, handler: CommandHandler) {
