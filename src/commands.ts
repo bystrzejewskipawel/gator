@@ -1,9 +1,10 @@
 import { readConfig, setUser } from 'src/config.js';
 import { createUser, deleteUsers, getUser, getUserById, getUsers } from 'src/lib/db/queries/users.js';
-import { addFeed, fetchFeed, printFeed, RSSItem, getFeeds, getFeedByUrl } from './feed';
+import { addFeed, fetchFeed, printFeed, RSSItem, getFeeds, getFeedByUrl, scrapeFeeds } from './feed.js';
 import { Feed, User, FeedFollows } from "src/schema.js";
 import { createFeedFollow, deleteFeedFollow, getFeedFollowsForUser } from "src/feedfollow.js"
 import { PgInsertOnConflictDoUpdateConfig } from 'drizzle-orm/pg-core';
+import { error } from 'console';
 
 export type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>;
 export type CommandsRegistry = Record<string, CommandHandler>;
@@ -65,10 +66,42 @@ export async function handlerUsers(cmdName: string, ...args: string[]) {
 }
 
 export async function handlerAgg(cmdName: string, ...args: string[]) {
-    const feed = await fetchFeed("https://www.wagslane.dev/index.xml");
-    //console.log(feed);
-    for (let i = 0; i < feed.channel.item.length; i++) {
-        console.log(feed.channel.item[i]);
+    if (args.length !== 1) {
+        throw new Error("Please provide only 1 parameter: Time between requests");
+    }
+    const time_between_reqs = args[0];
+    const timeBetweenRequests = parseDuration(time_between_reqs);
+    console.log(`Collecting feeds every ${time_between_reqs}`);
+
+    await scrapeFeeds();
+
+    // const interval = setInterval(() => {
+    // scrapeFeeds();
+    // }, timeBetweenRequests);
+}
+
+
+function parseDuration(durationStr: string): number {
+    const regex = /^(\d+)(ms|s|m|h)$/;
+    const match = durationStr.match(regex);
+    if (!match) {
+        throw new Error("Provided argument could not be parsed");
+    }
+    const digits = match[0].match(/\d+/);
+    if (!digits) {
+        throw new Error("No digits found")
+    }
+    let number = parseInt(digits[0]);
+    if (match[0].toLowerCase().includes("ms")) {
+        return number;
+    } else if (match[0].toLowerCase().includes("s")) {
+        return number * 1000;
+    } else if (match[0].toLowerCase().includes("m")) {
+        return number * 1000 * 60;
+    } else if (match[0].toLowerCase().includes("h")) {
+        return number * 1000 * 60 * 60;
+    } else {
+        throw new Error("Time interval not recognized")
     }
 }
 

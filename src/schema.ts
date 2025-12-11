@@ -1,4 +1,5 @@
 import { pgTable, timestamp, uuid, text, unique } from "drizzle-orm/pg-core";
+import { sql } from 'drizzle-orm';
 
 export type Feed = typeof feeds.$inferSelect; // feeds is the table object in schema.ts
 export type User = typeof users.$inferSelect; // feeds is the table object in schema.ts
@@ -24,6 +25,7 @@ export const feeds = pgTable("feeds", {
   url: text("url").notNull().unique(),
   user_id: uuid("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: text("name").notNull(),
+  last_fetched_at: timestamp("last_fetched_at").default(sql`null`).$type<Date | null>(),
 });
 
 export const feed_follows = pgTable("feed_follows", {
